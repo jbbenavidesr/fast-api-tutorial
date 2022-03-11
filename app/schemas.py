@@ -10,10 +10,6 @@ class Recipe(BaseModel):
     url: HttpUrl
 
 
-class RecipeSearchResults(BaseModel):
-    results: Sequence[Recipe]
-
-
 class RecipeCreate(BaseModel):
     label: str
     source: str

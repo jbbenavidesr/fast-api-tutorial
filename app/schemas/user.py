@@ -16,7 +16,7 @@ class UserCreate(UserBase):
 
 
 # Properties to recive via API on update
-class UpserUpdate(userBase):
+class UserUpdate(UserBase):
     ...
 
 

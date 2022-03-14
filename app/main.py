@@ -1,9 +1,10 @@
-from typing import Optional
+from typing import Optional, Any
 
-from fastapi import FastAPI, APIRouter, Query, HTTPException
+from fastapi import FastAPI, APIRouter, Query, HTTPException, Depends
+from sqlalchemy.orm import Session
 
-from app.schemas import RecipeSearchResults, Recipe, RecipeCreate
-from app.recipe_data import RECIPES
+from app.schemas.recipe import RecipeSearchResults, Recipe, RecipeCreate
+from app import deps, crud
 
 app = FastAPI(title="Recipe API", open_api_url="openapi.json")
 
@@ -19,12 +20,12 @@ def root() -> dict:
 
 
 @api_router.get("/recipe/{recipe_id}", status_code=200, response_model=Recipe)
-def fetch_recipe(*, recipe_id: int) -> dict:
+def fetch_recipe(*, recipe_id: int, db: Session = Depends(deps.get_db)) -> dict:
     """
     Fetch a single recipe by ID
     """
 
-    result = [recipe for recipe in RECIPES if recipe["id"] == recipe_id]
+    result = crud.recipe.get(db=db, id=recipe_id)
 
     if not result:
         raise HTTPException(
@@ -38,32 +39,30 @@ def fetch_recipe(*, recipe_id: int) -> dict:
 def search_recipes(
     keyword: Optional[str] = Query(None, min_length=3, example="chicken"),
     max_results: Optional[int] = 10,
+    db: Session = Depends(deps.get_db),
 ) -> dict:
     """
     Search for recipes based on label keyword
     """
-    if not keyword:
-        return {"results": RECIPES[:max_results]}
 
-    results = filter(lambda recipe: keyword.lower() in recipe["label"].lower(), RECIPES)
+    recipes = crud.recipe.ger_multi(db=db, limit=max_results)
+    if not keyword:
+        return {"results": recipes}
+
+    results = filter(lambda recipe: keyword.lower() in recipe.label.lower(), recipes)
     return {"results": list(results)[:max_results]}
 
 
 @api_router.post("/recipe/", status_code=201, response_model=Recipe)
-def create_recipe(*, recipe_in: RecipeCreate) -> dict:
+def create_recipe(
+    *, recipe_in: RecipeCreate, db: Session = Depends(deps.get_db)
+) -> dict:
     """
     Create a new recipe (in memory only)
     """
-    new_entry_id = len(RECIPES) + 1
-    recipe_entry = Recipe(
-        id=new_entry_id,
-        label=recipe_in.label,
-        source=recipe_in.source,
-        url=recipe_in.url,
-    )
-    RECIPES.append(recipe_entry.dict())
+    recipe = crud.recipe.create(db=db, obj_in=recipe_in)
 
-    return recipe_entry
+    return recipe
 
 
 app.include_router(api_router)

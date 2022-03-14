@@ -21,15 +21,17 @@ class RecipeUpdate(RecipeBase):
     label: str
 
 
-class RecipeIndDBBase(RecipeBase)
+class RecipeIndDBBase(RecipeBase):
     id: int
     submitter_id: int
 
     class Config:
         orm_mode = True
 
-class Recipe (RecipeIndDBBase):
+
+class Recipe(RecipeIndDBBase):
     pass
+
 
 class RecipeInDB(RecipeIndDBBase):
     pass
